@@ -22,12 +22,13 @@ const App: FC = () => {
 
     const store = useStore();
 
-    const [selectedPort, setSelectedPort] = [store.selectedPort, store.setSelectedPort]
-    const [ports, setPorts] = [store.ports, store.setPorts]
+    const [selectedPort, setSelectedPort] = useState<number>(-1);
+    const [ports, setPorts] = useState<SerialPort[]>([]);
     const [connecting, setConnecting] = useState<boolean>(false);
     const [connected, setConnected] = useState<boolean>(false);
     const [secure, setSecure] = [store.secure, store.setSecure];
     const [selectedTab, setSelectedTab] = useState("ESC");
+    const [serialComm, setSeialComm] = [store.serialComm, store.setSerialComm];
 
     const updatePorts = async () => {
         let ports = await SerialComm.getPorts();
@@ -61,6 +62,13 @@ const App: FC = () => {
     }
 
     const handleDisconnect = async () => {
+        //let port = ports[selectedPort];
+        let serialComm1 = serialComm;
+        setSeialComm(null);
+        let fourWay = new FourWay(serialComm1!)
+        let resp = await fourWay.exitInterface(0, 10);
+        console.log(resp);
+        serialComm1?.disconnect();
         setConnected(false);
         log.info("Port disconnected: " + selectedPort);
     }
@@ -69,17 +77,16 @@ const App: FC = () => {
         setConnecting(true);
         let ports = await SerialComm.getPorts();
         let port = ports[selectedPort];
-        let serialComm = new SerialComm(port);
-        await serialComm.connect();
+        let serialComm1 = new SerialComm(port);
+        await serialComm1.connect();
         log.info("Port connected: " + selectedPort);
 
-        let fourWay = new FourWay(serialComm)
+        let fourWay = new FourWay(serialComm1)
 
 
-        let msp = new Msp(serialComm);
+        let msp = new Msp(serialComm1);
         try {
             let data = await msp.send(MSP_COMMANDS.MSP_SET_PASSTHROUGH, new Uint8Array());
-            //let data = await msp.readWithTimeout(500);
             console.log(data);
         } catch (e) {
             console.log(e);
@@ -88,21 +95,12 @@ const App: FC = () => {
         let resp = await fourWay.initFlash(0, 10);
         console.log(resp);
 
-        // resp = await fourWay.readAddress(0xF7FFF000, 2);
-        // console.log(resp);
-
         let resp2 = await fourWay.getSecureBootInitialized();
         log.info("Secure boot initialized: " + resp2);
         setSecure(resp2!);
 
-        resp2 = await fourWay.getSecureBootEnabled();
-        log.info("Secure boot enabled: " + resp2);
+        setSeialComm(serialComm1);
 
-        //await fourWay.secureBootInitialize();
-
-        resp = await fourWay.exitInterface(0, 10);
-        console.log(resp);
-        serialComm.disconnect();
         setConnecting(false);
         setConnected(true);
         setSelectedTab("ESC");

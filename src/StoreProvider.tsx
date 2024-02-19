@@ -1,34 +1,25 @@
 import React, { createContext, useReducer, useContext, useState, FunctionComponent, PropsWithChildren } from "react";
+import SerialComm from "./SerialComm";
 
 export type StoreType = {
-    serial: Serial | null;
-    setSerial: (serial: Serial) => void;
+    serialComm: SerialComm | null;
+    setSerialComm: (serialComm: SerialComm | null) => void;
     secure: boolean;
     setSecure: (secure: boolean) => void;
-    ports: SerialPort[];
-    setPorts: (ports: SerialPort[]) => void;
-    selectedPort: number;
-    setSelectedPort: (port: number) => void;
 };
 
 const StoreContext = React.createContext<StoreType>({
-    serial: null, setSerial: () => {},
+    serialComm: null, setSerialComm: () => {},
     secure: false, setSecure: () => {},
-    ports: [], setPorts: () => {},
-    selectedPort: -1, setSelectedPort: () => {}
 });
 
 export const StoreProvider = ({ children }: PropsWithChildren<any>) => {
-    const [serial, setSerial] = useState<Serial | null>(null);
+    const [serialComm, setSerialComm] = useState<SerialComm | null>(null);
     const [secure, setSecure] = useState<boolean>(false);
-    const [ports, setPorts] = useState<SerialPort[]>([]);
-    const [selectedPort, setSelectedPort] = useState<number>(-1);
 
     return <StoreContext.Provider value={{ 
-        serial, setSerial,
-        secure, setSecure,
-        ports, setPorts,
-        selectedPort, setSelectedPort
+        serialComm, setSerialComm,
+        secure, setSecure
     }}>
         {children}
     </StoreContext.Provider>;

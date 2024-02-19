@@ -26,7 +26,7 @@ const KeyGenerationTab: FC = () => {
         let c = new ec.ec('secp256k1');
         let keyPair = c.genKeyPair();
 
-        let pub = keyPair.getPublic('hex');
+        let pub = keyPair.getPublic('hex').substring(2);
         let priv = keyPair.getPrivate('hex');
 
         setPublicKey(convertData(pub));

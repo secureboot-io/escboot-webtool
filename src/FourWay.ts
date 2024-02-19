@@ -8,6 +8,7 @@ export type DeviceInfo = {
     deviceId: string;
     manufacturerPublicKey: string;
     devicePublicKey: string;
+    raw: Uint8Array;
 };
 
 export enum FOUR_WAY_COMMANDS {
@@ -131,20 +132,6 @@ export class FourWay {
         return null;
     }
 
-    async getSecureBootEnabled(retries = 10) {
-        let resp = await this.readAddress(0x0000F001, 1, retries);
-        if (resp === null) {
-            return null;
-        }
-        if (resp.params[0] === 0x00) {
-            return true;
-        }
-        if (resp.params[0] === 0xFF) {
-            return false;
-        }
-        return null;
-    }
-
     async readAddress(address: number, bytes: number, retries = 10) {
         return this.sendWithPromise(
             FOUR_WAY_COMMANDS.cmd_DeviceRead,
@@ -161,14 +148,6 @@ export class FourWay {
 
     async secureBootDeinitialize(retries = 10) {
         return await this.writeAddress(0x0000F000, new Uint8Array([0xFF]));
-    }
-
-    async secureBootEnable(retries = 10) {
-        return await this.writeAddress(0x0000F001, new Uint8Array([0x00]));
-    }
-
-    async secureBootDisable(retries = 10) {
-        return await this.writeAddress(0x0000F001, new Uint8Array([0xFF]));
     }
 
     extractString(data: Uint8Array): string {
@@ -191,7 +170,7 @@ export class FourWay {
     }
 
     async secureBootGetDeviceInfo(retries = 10) : Promise<DeviceInfo | null> {
-        let resp = await this.readAddress(0x0000F002, 192, retries);
+        let resp = await this.readAddress(0x0000F001, 192, retries);
         if (resp === null) {
             return null;
         }
@@ -199,7 +178,8 @@ export class FourWay {
             manufacturerId: this.extractString(resp.params.subarray(0, 32)),
             deviceId: this.extractString(resp.params.subarray(32, 64)),
             manufacturerPublicKey: this.toBase64(resp.params.subarray(64, 128)),
-            devicePublicKey: this.toBase64(resp.params.subarray(128, 192))
+            devicePublicKey: this.toBase64(resp.params.subarray(128, 192)),
+            raw: resp.params
         }
         return deviceInfo;
     }
@@ -213,7 +193,11 @@ export class FourWay {
         data.set(manId, 0);
         data.set(devId, 32);
         data.set(manPubKey, 64);
-        return await this.writeAddress(0x0000F002, data);
+        return await this.writeAddress(0x0000F001, data);
+    }
+
+    async secureBootSign(data: Uint8Array, retries = 1) {
+        return await this.writeAddress(0x0000F0C1, data);
     }
 
     async sendWithPromise(command: FOUR_WAY_COMMANDS, params: Uint8Array = new Uint8Array([]), address: number = 0, retries: number = 10): Promise<FourWayResponse | null> {
@@ -225,19 +209,20 @@ export class FourWay {
         }
 
         let currentTry = 0;
+        await await this.serialComm.write(new Uint8Array(message));
         while (currentTry++ < retries) {
-            await await this.serialComm.write(new Uint8Array(message));
-            let buffer = await this.serialComm.readWithTimeout(9, 500);
+            
+            let buffer = await this.serialComm.readWithTimeout(9, 2000);
             if (buffer === null) {
-                this.log.warn("Recieved no reply from ESC");
-                continue;
+                this.log.warn("Recieved no reply from ESC for " + command + " try " + currentTry);
+                break;
             }
             let response = await this.parseMessage(buffer);
             if (response.ack !== FOUR_WAY_ACK.ACK_OK) {
-                this.log.warn("Receieved NACK from ESC");
-                continue;
+                this.log.warn("Receieved NACK from ESC for " + command + " with code " + response.ack);
+                break;
             }
-            this.log.info("ESC response OK");
+            this.log.info("ESC response OK for " + command);
             return response;
         }
         this.log.error("error sending command");

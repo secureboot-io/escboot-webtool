@@ -1,60 +1,39 @@
-import { Button, Card, CardBody, CardFooter, CardHeader, Chip, Input, Switch, Tab, Tabs, Textarea } from "@nextui-org/react";
-import React, { ChangeEvent, useEffect } from "react";
-import { FC } from "react";
+import { Button, Card, CardBody, CardFooter, Chip, Input, Tab, Tabs, Textarea } from "@nextui-org/react";
+import { FC, useEffect } from "react";
 import { SecureIcon } from "./icons/Secure";
 import { UnsecureIcon } from "./icons/Unsecure";
 import { useStore } from "./StoreProvider";
 import ConfirmDialog from "./ConfirmDialog";
-import SerialComm from "./SerialComm";
-import { useLog } from "./LogProvider";
 import Logger from "./Logger";
 import { FourWay } from "./FourWay";
-import Msp, { MSP_COMMANDS } from "./Msp";
-
-
-
+import React from "react";
+import { Buffer } from "buffer";
+import KJUR from 'jsrsasign';
 const EscTab: FC = () => {
 
     const store = useStore();
     const [secure, setSecure] = [store.secure, store.setSecure];
     const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
-    const [ports, setPorts] = [store.ports, store.setPorts];
-    const [selectedPort, setSelectedPort] = [store.selectedPort, store.setSelectedPort];
+    const [serialComm, setSerialComm] = [store.serialComm, store.setSerialComm];
+    //const [selectedPort, setSelectedPort] = useState(-1);
     const [connecting, setConnecting] = React.useState(false);
     const [manufacturerId, setManufacturerId] = React.useState("");
     const [deviceId, setDeviceId] = React.useState("");
     const [manufacturerPublicKey, setManufacturerPublicKey] = React.useState("");
     const [devicePublicKey, setDevicePublicKey] = React.useState("");
+    const [signReady, setSignReady] = React.useState(false);
+    const [privateKey, setPrivateKey] = React.useState<string | null>(null);
+    const  [rawDeviceInfo, setRawDeviceInfo] = React.useState(new Uint8Array());
     const log = Logger.getInstance();
 
-    // useEffect(() => {
-    //     if(selectedPort < 0)
-    //         return;
-    //     if(connecting)
-    //         return;
-    //     loadDeviceInfo();
-    // }, [selectedPort]);
+    useEffect(() => {
+        handleRead();
+    }, []);
 
     const loadDeviceInfo = async () => {
         setConnecting(true);
-        let port = ports[selectedPort];
-        let serialComm = new SerialComm(port);
-        await serialComm.connect();
-        log.info("Port connected: " + selectedPort);
 
-        let fourWay = new FourWay(serialComm)
-        let msp = new Msp(serialComm);
-
-        try {
-            let data = await msp.send(MSP_COMMANDS.MSP_SET_PASSTHROUGH, new Uint8Array());
-            //let data = await msp.readWithTimeout(500);
-            console.log(data);
-        } catch (e) {
-            console.log(e);
-        }
-
-        let resp = await fourWay.initFlash(0, 10);
-        console.log(resp);
+        let fourWay = new FourWay(serialComm!)
 
         let deviceInfo = await fourWay.secureBootGetDeviceInfo();
         if(deviceInfo === null) {
@@ -65,62 +44,26 @@ const EscTab: FC = () => {
         setDeviceId(deviceInfo.deviceId);
         setManufacturerPublicKey(deviceInfo.manufacturerPublicKey);
         setDevicePublicKey(deviceInfo.devicePublicKey);
-        console.log(deviceInfo);
+        setRawDeviceInfo(deviceInfo.raw);
 
-        resp = await fourWay.exitInterface(0, 10);
-        console.log(resp);
-        serialComm.disconnect();
         setConnecting(false);
+        setSignReady(true);
     }
 
     const saveDeviceInfo = async () => {
         setConnecting(true);
-        let port = ports[selectedPort];
-        let serialComm = new SerialComm(port);
-        await serialComm.connect();
-        log.info("Port connected: " + selectedPort);
 
-        let fourWay = new FourWay(serialComm)
-        let msp = new Msp(serialComm);
+        let fourWay = new FourWay(serialComm!)
 
-        try {
-            let data = await msp.send(MSP_COMMANDS.MSP_SET_PASSTHROUGH, new Uint8Array());
-            //let data = await msp.readWithTimeout(500);
-            console.log(data);
-        } catch (e) {
-            console.log(e);
-        }
+        let resp = await fourWay.secureBootSetDeviceInfo(manufacturerId, deviceId, manufacturerPublicKey);
 
-        let resp = await fourWay.initFlash(0, 10);
-        console.log(resp);
-
-        let resp2 = await fourWay.secureBootSetDeviceInfo(manufacturerId, deviceId, manufacturerPublicKey);
-        resp2 = await fourWay.exitInterface(0, 10);
-        console.log(resp);
-        serialComm.disconnect();
         setConnecting(false);
     }
 
     const doProtect = async () => {
         setConnecting(true);
-        let port = ports[selectedPort];
-        let serialComm = new SerialComm(port);
-        await serialComm.connect();
-        log.info("Port connected: " + selectedPort);
 
-        let fourWay = new FourWay(serialComm)
-        let msp = new Msp(serialComm);
-
-        try {
-            let data = await msp.send(MSP_COMMANDS.MSP_SET_PASSTHROUGH, new Uint8Array());
-            //let data = await msp.readWithTimeout(500);
-            console.log(data);
-        } catch (e) {
-            console.log(e);
-        }
-
-        let resp = await fourWay.initFlash(0, 10);
-        console.log(resp);
+        let fourWay = new FourWay(serialComm!)
 
         await fourWay.secureBootInitialize();
 
@@ -128,43 +71,21 @@ const EscTab: FC = () => {
         log.info("Secure boot initialized: " + resp2);
         setSecure(resp2!);  
 
-        resp = await fourWay.exitInterface(0, 10);
-        console.log(resp);
-        await serialComm.disconnect();
         setConnecting(false);
         loadDeviceInfo();
     }
 
     const doUnprotect = async () => {
         setConnecting(true);
-        let port = ports[selectedPort];
-        let serialComm = new SerialComm(port);
-        await serialComm.connect();
-        log.info("Port connected: " + selectedPort);
 
-        let fourWay = new FourWay(serialComm)
-        let msp = new Msp(serialComm);
-
-        try {
-            let data = await msp.send(MSP_COMMANDS.MSP_SET_PASSTHROUGH, new Uint8Array());
-            //let data = await msp.readWithTimeout(500);
-            console.log(data);
-        } catch (e) {
-            console.log(e);
-        }
-
-        let resp = await fourWay.initFlash(0, 10);
-        console.log(resp);
-
+        let fourWay = new FourWay(serialComm!)
+ 
         await fourWay.secureBootDeinitialize();
 
         let resp2 = await fourWay.getSecureBootInitialized();
         log.info("Secure boot initialized: " + resp2);
         setSecure(resp2!);  
 
-        resp = await fourWay.exitInterface(0, 10);
-        console.log(resp);
-        await serialComm.disconnect();
         setConnecting(false);
         loadDeviceInfo();
     }
@@ -186,8 +107,59 @@ const EscTab: FC = () => {
         loadDeviceInfo();
     }
 
-    const handleSign = () => {
-        console.log("Sign");
+    const handleFileRead = (e: ProgressEvent<FileReader>) => {
+        const content: string = e.target?.result as string;
+        setPrivateKey(Buffer.from(content, 'base64').toString('hex'));
+    }
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if(e.target.files === null || e.target.files.length === 0) {
+            return;
+        }
+        const file = e.target.files[0];
+        let fileReader = new FileReader();
+        fileReader.onloadend = handleFileRead;
+        fileReader.readAsText(file);
+    }
+
+    const handleSign = async () => {
+        setConnecting(true);
+
+        var curve = "secp256k1"; 
+        var signature_algo = "SHA256withECDSA";
+
+        //Message for encrypting
+        var msg = "Hello";
+
+        //Generating Signature
+        var sig = new KJUR.KJUR.crypto.Signature({"alg": signature_algo});
+        sig.init({d: privateKey!, curve: curve});
+        sig.updateHex(Buffer.from(rawDeviceInfo).toString('hex'));
+        var sigValueHex = sig.sign();
+        if(sigValueHex.startsWith("30450220")) {
+            sigValueHex = sigValueHex.substring(8);
+        } else if(sigValueHex.startsWith("30440220")) {
+            sigValueHex = sigValueHex.substring(8);
+        } else if(sigValueHex.startsWith("3045022100")) {
+            sigValueHex = sigValueHex.substring(10);
+        } else if(sigValueHex.startsWith("3046022100")) {
+            sigValueHex = sigValueHex.substring(10);
+        }
+
+        let r = sigValueHex.substring(0, 64);
+        let s = sigValueHex.substring(sigValueHex.length - 64);
+
+        let sig2 = Buffer.from(r + s, 'hex');
+
+        let fourWay = new FourWay(serialComm!)
+
+        await fourWay.secureBootSign(sig2);
+
+        //Give 5 sec delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        setConnecting(false);
+        loadDeviceInfo();
     }
 
     const handleWrite = () => {
@@ -213,6 +185,12 @@ const EscTab: FC = () => {
                             <Input type="text" label="Device Id" disabled={secure} value={deviceId} onValueChange={setDeviceId} />
                             <Textarea label="Manufacturer Public Key" disabled={secure} value={manufacturerPublicKey} onValueChange={setManufacturerPublicKey} className="font-mono"></Textarea>
                             <Textarea label="Device Public Key" disabled={true} value={devicePublicKey} className="font-mono"></Textarea>
+                            {secure && (
+                                <>
+                                    <p>Private key file</p>
+                                    <Input type='file' onChange={handleFileSelect} />
+                                </>
+                            )}
                         </div>
                     </Tab>
                 </Tabs>  
@@ -221,7 +199,7 @@ const EscTab: FC = () => {
                 <Button color="success" onClick={handleRead} isLoading={connecting}>Read</Button>
                 {secure ? (
                     <>
-                        <Button color="success" onClick={handleSign} isLoading={connecting}>Sign</Button>
+                        <Button color="success" onClick={handleSign} isLoading={connecting} disabled={!signReady || privateKey === null}>Sign</Button>
                         <Button color="warning" onClick={handleUnprotect} isLoading={connecting}>Unprotect</Button>
                     </>
                 ) : (
