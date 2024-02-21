@@ -162,7 +162,7 @@ const App: FC = () => {
                         </NavbarItem>
                     </NavbarContent>
                 </Navbar>
-                <Card className="m-unit-2">
+                <Card className="m-unit-2 hidden">
                     <CardHeader>
                         <h5 className="text-sm tracking-tight">Activity</h5>
                     </CardHeader>

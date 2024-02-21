@@ -1,26 +1,43 @@
 import React, { createContext, useReducer, useContext, useState, FunctionComponent, PropsWithChildren } from "react";
 import SerialComm from "./SerialComm";
 import EscOperations from "./EscOperations";
+import { DeviceInfo } from "./FourWay";
+
+export type EscInfo = {
+    secure: boolean;
+    deviceInfo: DeviceInfo;
+}
+
+export type CommonEscInfo = {
+    secure: boolean;
+    manufacturerId: string;
+    manufacturerPublicKey: string;
+}
 
 export type StoreType = {
     escOperations: EscOperations | null;
     setEscOperations: (escOperations: EscOperations | null) => void;
-    detectedEsc: boolean[];
-    setDetectedEsc: (detectedEsc: boolean[]) => void;
+    escInfos: (EscInfo |null)[];
+    setEscInfos: (escInfos: (EscInfo |null)[]) => void;
+    commonEscInfo: CommonEscInfo | null;
+    setCommonEscInfo: (commonEscInfo: CommonEscInfo | null) => void;
 };
 
 const StoreContext = React.createContext<StoreType>({
     escOperations: null, setEscOperations: () => {},
-    detectedEsc: [false, false, false, false], setDetectedEsc: () => {}
+    escInfos: [], setEscInfos: () => {},
+    commonEscInfo: null, setCommonEscInfo: () => {}
 });
 
 export const StoreProvider = ({ children }: PropsWithChildren<any>) => {
     const [escOperations, setEscOperations] = useState<EscOperations | null>(null);
-    const [detectedEsc, setDetectedEsc] = useState([false, false, false, false]);
+    const [escInfos, setEscInfos] = useState<(EscInfo | null)[]>([]);
+    const [commonEscInfo, setCommonEscInfo] = useState<CommonEscInfo | null>(null);
 
     return <StoreContext.Provider value={{ 
         escOperations, setEscOperations,
-        detectedEsc, setDetectedEsc
+        escInfos, setEscInfos,
+        commonEscInfo, setCommonEscInfo
     }}>
         {children}
     </StoreContext.Provider>;

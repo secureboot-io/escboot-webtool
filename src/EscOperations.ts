@@ -22,14 +22,16 @@ export default class EscOperations {
         await this.asyncLock.promise;
         this.asyncLock.enable();
 
-        try {
-            await this.msp.send(MSP_COMMANDS.MSP_SET_PASSTHROUGH, new Uint8Array());
-        } catch (e) {
-            await this.fourWay.exitInterface(target);
-            await this.msp.send(MSP_COMMANDS.MSP_SET_PASSTHROUGH, new Uint8Array());
-        }
-
-        await this.fourWay.initFlash(target);
+        let retry = 3;
+        do {
+            try {
+                await this.msp.send(MSP_COMMANDS.MSP_SET_PASSTHROUGH, new Uint8Array());
+                await this.fourWay.initFlash(target);
+            } catch (e) {
+                await this.fourWay.exitInterface(target);
+            }
+            break;
+        } while(retry-- > 0);
 
         return this.fourWay;
     }

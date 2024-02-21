@@ -5,8 +5,8 @@ import { Buffer } from "buffer";
 
 export type DeviceInfo = {
     manufacturerId: string;
-    deviceId: string;
     manufacturerPublicKey: string;
+    deviceId: string;
     devicePublicKey: string;
     raw: Uint8Array;
 };
@@ -49,7 +49,7 @@ type FourWayResponse = {
     ack: number,
     checksum: number,
     params: Uint8Array
-}
+};
 
 export class FourWay {
 
@@ -224,13 +224,13 @@ export class FourWay {
             }
             let response = await this.parseMessage(buffer);
             if (response.ack !== FOUR_WAY_ACK.ACK_OK) {
-                this.log.warn("Receieved NACK from ESC for " + command + " with code " + response.ack);
+                //this.log.warn("Receieved NACK from ESC for " + command + " with code " + response.ack);
                 break;
             }
-            this.log.info("ESC response OK for " + command);
+            //this.log.info("ESC response OK for " + command);
             return response;
         }
-        this.log.error("error sending command");
+        //this.log.error("error sending command");
         return null;
     }
 
