@@ -200,6 +200,10 @@ export class FourWay {
         return await this.writeAddress(0x0000F0C1, data);
     }
 
+    async secureWriteSignature(address: number, data: Uint8Array, retries = 1) {
+        return await this.writeAddress(address, data);
+    }
+
     async sendWithPromise(command: FOUR_WAY_COMMANDS, params: Uint8Array = new Uint8Array([]), address: number = 0, retries: number = 10): Promise<FourWayResponse | null> {
         const message = this.makePackage(command, params, address);
 
@@ -209,11 +213,12 @@ export class FourWay {
         }
 
         let currentTry = 0;
-        await await this.serialComm.write(new Uint8Array(message));
+    
         while (currentTry++ < retries) {
-            
+            await await this.serialComm.write(new Uint8Array(message));
+
             let buffer = await this.serialComm.readWithTimeout(9, 2000);
-            if (buffer === null) {
+            if (buffer === null || buffer.length === 0) {
                 this.log.warn("Recieved no reply from ESC for " + command + " try " + currentTry);
                 break;
             }

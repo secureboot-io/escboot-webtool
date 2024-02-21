@@ -1,25 +1,26 @@
 import React, { createContext, useReducer, useContext, useState, FunctionComponent, PropsWithChildren } from "react";
 import SerialComm from "./SerialComm";
+import EscOperations from "./EscOperations";
 
 export type StoreType = {
-    serialComm: SerialComm | null;
-    setSerialComm: (serialComm: SerialComm | null) => void;
-    secure: boolean;
-    setSecure: (secure: boolean) => void;
+    escOperations: EscOperations | null;
+    setEscOperations: (escOperations: EscOperations | null) => void;
+    detectedEsc: boolean[];
+    setDetectedEsc: (detectedEsc: boolean[]) => void;
 };
 
 const StoreContext = React.createContext<StoreType>({
-    serialComm: null, setSerialComm: () => {},
-    secure: false, setSecure: () => {},
+    escOperations: null, setEscOperations: () => {},
+    detectedEsc: [false, false, false, false], setDetectedEsc: () => {}
 });
 
 export const StoreProvider = ({ children }: PropsWithChildren<any>) => {
-    const [serialComm, setSerialComm] = useState<SerialComm | null>(null);
-    const [secure, setSecure] = useState<boolean>(false);
+    const [escOperations, setEscOperations] = useState<EscOperations | null>(null);
+    const [detectedEsc, setDetectedEsc] = useState([false, false, false, false]);
 
     return <StoreContext.Provider value={{ 
-        serialComm, setSerialComm,
-        secure, setSecure
+        escOperations, setEscOperations,
+        detectedEsc, setDetectedEsc
     }}>
         {children}
     </StoreContext.Provider>;

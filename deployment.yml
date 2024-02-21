@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: escboot-webtool-deployment
+  labels:
+    name: escboot-webtool-deployment
+    app: escboot-webtool
+  namespace: escboot
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      name: escboot-webtool-pod
+      app: escboot-webtool
+  template:
+    metadata:
+      name: escboot-webtool-pod
+      labels:
+        name: escboot-webtool-pod
+        app: escboot-webtool
+    spec:
+      containers:
+        - name: escboot-webtool-container
+          image: asia-south2-docker.pkg.dev/secureboot-io/secureboot-io/escboot-webtool:latest
+          ports:
+            - containerPort: 80

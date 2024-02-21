@@ -15,6 +15,7 @@ import EscTab from './EscTab';
 import { useStore } from './StoreProvider';
 import KeyGenerationTab from './KeyGenerationTab';
 import FirmwareSigningTab from './FirmwareSigningTab';
+import EscOperations from './EscOperations';
 
 const App: FC = () => {
     Logger.init(useLog());
@@ -26,9 +27,8 @@ const App: FC = () => {
     const [ports, setPorts] = useState<SerialPort[]>([]);
     const [connecting, setConnecting] = useState<boolean>(false);
     const [connected, setConnected] = useState<boolean>(false);
-    const [secure, setSecure] = [store.secure, store.setSecure];
     const [selectedTab, setSelectedTab] = useState("ESC");
-    const [serialComm, setSeialComm] = [store.serialComm, store.setSerialComm];
+    const [escOperations, setEscOperations] = [store.escOperations, store.setEscOperations];
 
     const updatePorts = async () => {
         let ports = await SerialComm.getPorts();
@@ -62,14 +62,12 @@ const App: FC = () => {
     }
 
     const handleDisconnect = async () => {
-        //let port = ports[selectedPort];
-        let serialComm1 = serialComm;
-        setSeialComm(null);
-        let fourWay = new FourWay(serialComm1!)
-        let resp = await fourWay.exitInterface(0, 10);
-        console.log(resp);
-        serialComm1?.disconnect();
+        let escOperations1 = escOperations;
+        setEscOperations(null);
+
+        await escOperations1?.disconnect();
         setConnected(false);
+
         log.info("Port disconnected: " + selectedPort);
     }
 
@@ -81,25 +79,32 @@ const App: FC = () => {
         await serialComm1.connect();
         log.info("Port connected: " + selectedPort);
 
-        let fourWay = new FourWay(serialComm1)
+        // let fourWay = new FourWay(serialComm1)
 
 
-        let msp = new Msp(serialComm1);
-        try {
-            let data = await msp.send(MSP_COMMANDS.MSP_SET_PASSTHROUGH, new Uint8Array());
-            console.log(data);
-        } catch (e) {
-            console.log(e);
-        }
+        // let msp = new Msp(serialComm1);
+        
 
-        let resp = await fourWay.initFlash(0, 10);
-        console.log(resp);
+        // for(let i = 0; i < 4; i++) {
+        //     try {
+        //         let data = await msp.send(MSP_COMMANDS.MSP_SET_PASSTHROUGH, new Uint8Array());
+        //         console.log(data);
+        //     } catch (e) {
+        //         console.log(e);
+        //     }
 
-        let resp2 = await fourWay.getSecureBootInitialized();
-        log.info("Secure boot initialized: " + resp2);
-        setSecure(resp2!);
+        //     let resp = await fourWay.initFlash(i, 3);
+        //     console.log(resp);
+    
+        //     let resp2 = await fourWay.getSecureBootInitialized();
+        //     log.info("Secure boot initialized: " + resp2);
+        //    // setSecure(resp2!);
 
-        setSeialComm(serialComm1);
+        //     let resp3 = await fourWay.exitInterface(i, 3)
+        //     console.log(resp3);
+        // }
+
+        setEscOperations(new EscOperations(serialComm1));
 
         setConnecting(false);
         setConnected(true);
@@ -167,11 +172,11 @@ const App: FC = () => {
                     </CardBody>
                 </Card>
                 <Spacer y={2} />
-                <div className="flex h-full w-full flex-col mb-8" style={{ alignItems: "center" }}>
+                <div className="flex flex-col mb-8 flex-grow" style={{ alignItems: "center" }}>
                     
                         <Tabs aria-label="Options" className='' selectedKey={selectedTab} onSelectionChange={key => setSelectedTab(key.toString())}>
                         {connected && (
-                            <Tab key="ESC" title="ESC" className='w-full h-full'>
+                            <Tab key="ESC" title="ESC" className='flex flex-grow w-full'>
                                 <EscTab></EscTab>                              
                             </Tab>
                             )}

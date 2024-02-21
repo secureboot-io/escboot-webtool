@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { FC } from "react";
 import { useStore } from "./StoreProvider";
 import Logger from "./Logger";
-import ec from 'elliptic';
 import save from "save-file";
 import { Buffer } from "buffer";
 
@@ -23,11 +22,11 @@ const KeyGenerationTab: FC = () => {
     }
 
     const handleGenerate = () => {
-        let c = new ec.ec('secp256k1');
-        let keyPair = c.genKeyPair();
+        // let c = new ec.ec('secp256k1');
+        // let keyPair = c.genKeyPair();
 
-        let pub = keyPair.getPublic('hex').substring(2);
-        let priv = keyPair.getPrivate('hex');
+        let pub = "";//keyPair.getPublic('hex').substring(2);
+        let priv ="";// keyPair.getPrivate('hex');
 
         setPublicKey(convertData(pub));
         setPrivateKey(convertData(priv));
