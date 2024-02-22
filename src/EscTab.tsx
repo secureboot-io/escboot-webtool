@@ -7,6 +7,7 @@ import EscNumTab from "./EscNumTab";
 import { isEqual } from "lodash";
 import FileUpload from "./FileUpload";
 import { Buffer } from "buffer";
+import ConfirmDialog from "./ConfirmDialog";
 
 const EscTab: FC = () => {
 
@@ -15,6 +16,7 @@ const EscTab: FC = () => {
     const [escInfos, setEscInfos] = [store.escInfos, store.setEscInfos];
     const [commonEscInfo, setCommonEscInfo] = [store.commonEscInfo, store.setCommonEscInfo];
     const escOperations = store.escOperations;
+    const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
     const [privateKey, setPrivateKey] = React.useState<string | null>(null);
     const [data, setData] = React.useState("");
     const [address, setAddress] = React.useState("0x0000f101");
@@ -43,10 +45,13 @@ const EscTab: FC = () => {
         setCommonEscInfo(validInfo);
     }
 
-    const handleRead = async () => {
+    const doRead = async (target: number | undefined = undefined) => {
         setConnecting(true);
         let esc: (EscInfo | null)[] = [null, null, null, null];
         for (let i = 0; i < 4; i++) {
+            if (target !== undefined && target !== i) {
+                continue;
+            }
             let fourWay = await escOperations?.connectToTarget(i);
             let resp = await fourWay?.getSecureBootInitialized();
             if (resp === undefined || resp === null) {
@@ -73,6 +78,92 @@ const EscTab: FC = () => {
         setConnecting(false);
     }
 
+    const doWrite = async (target: number | undefined = undefined) => {
+        setConnecting(true);
+        for (let i = 0; i < escInfos.length; i++) {
+            if (target !== undefined && target !== i) {
+                continue;
+            }
+            if (escInfos[i] === null) {
+                continue;
+            }
+            if (escInfos[i]?.secure === true) {
+                log.info("ESC " + (i + 1) + " is protected, write failed");
+                continue;
+            }
+            let fourWay = await escOperations?.connectToTarget(i);
+            let result = await fourWay?.secureBootSetDeviceInfo(commonEscInfo !== null ? commonEscInfo.manufacturerId : escInfos[i]!.deviceInfo.manufacturerId,
+                escInfos[i]!.deviceInfo.deviceId,
+                commonEscInfo !== null ? commonEscInfo.manufacturerPublicKey : escInfos[i]!.deviceInfo.manufacturerPublicKey,
+                1);
+            console.log("Write result: " + result);
+            await escOperations?.disconnectFromTarget(i);
+        }
+        setConnecting(false);
+        await doRead(target);
+    }
+
+    const doProtect = async (target: number | undefined = undefined) => {
+        setConnecting(true);
+        for (let i = 0; i < escInfos.length; i++) {
+            if (target !== undefined && target !== i) {
+                continue;
+            }
+            if (escInfos[i] === null) {
+                continue;
+            }
+            if (escInfos[i]?.secure === true) {
+                log.info("ESC " + (i + 1) + " is already protected");
+                continue;
+            }
+            let fourWay = await escOperations?.connectToTarget(i);
+            let result = await fourWay?.secureBootInitialize();
+            console.log("Protect result: " + result);
+            await escOperations?.disconnectFromTarget(i);
+        }
+        setConnecting(false);
+        await doRead(target);
+    }
+
+    const doUnprotect = async (target: number | undefined = undefined) => {
+        setIsConfirmOpen(false);
+        setConnecting(true);
+        for (let i = 0; i < escInfos.length; i++) {
+            if (target !== undefined && target !== i) {
+                continue;
+            }
+            if (escInfos[i] === null) {
+                continue;
+            }
+            if (escInfos[i]?.secure === false) {
+                log.info("ESC " + (i + 1) + " is already unprotected");
+                continue;
+            }
+            let fourWay = await escOperations?.connectToTarget(i);
+            let result = await fourWay?.secureBootDeinitialize();
+            console.log("Unprotect result: " + result);
+            await escOperations?.disconnectFromTarget(i);
+        }
+        setConnecting(false);
+        await doRead(target);
+    }
+
+    const handleRead = async () => {
+        doRead();
+    }
+
+    const handleWrite = async () => {
+        doWrite();
+    }
+
+    const handleProtect = async () => {
+        doProtect();
+    }
+
+    const handleUnprotect = async () => {
+        doUnprotect();
+    }
+
     const setCommonManufacturerId = (value: string) => {
         setCommonEscInfo({
             ...commonEscInfo, manufacturerId: value
@@ -96,7 +187,8 @@ const EscTab: FC = () => {
         fileReader.readAsText(f);
     }
 
-    const handleWriteSign = async () => {
+    const handleUnprotectConfirm = () => {
+        setIsConfirmOpen(true);
     }
 
     return (
@@ -115,15 +207,30 @@ const EscTab: FC = () => {
 
                 {escInfos.map((esc, index) => {
                     return (esc !== null &&
-                        <EscNumTab target={index} />
+                        <EscNumTab target={index}
+                            requestWrite={(target) => doWrite(target)}
+                            requestProtect={(target) => doProtect(target)}
+                            requestUnprotect={(target) => doUnprotect(target)} />
                     );
                 })}
             </CardBody>
             <CardFooter className="flex flex-row gap-4">
+                <ConfirmDialog title="Unprotect" message="Are you sure you want to unprotect the device?" onConfirm={handleUnprotect}
+                    onCancel={() => { }} open={isConfirmOpen} confirmText="Unprotect" />
                 <FileUpload onFileSelected={handlePrivateKeySelect} className="flex-grow" />
                 <Button color="success" onClick={handleRead} isLoading={connecting}>Read All</Button>
-                <Button color="success" onClick={handleRead} isLoading={connecting}>Protect</Button>
-                <Button color="success" onClick={handleRead} isLoading={connecting}>Unprotect</Button>
+                {escInfos.filter((esc) => esc !== null && esc.secure === false).length > 0 &&
+                    <Button color="success" onClick={handleWrite} isLoading={connecting}>Write All</Button>
+                }
+                {commonEscInfo !== null &&
+                    <>
+                        {commonEscInfo.secure ?
+                            <Button color="warning" onClick={handleUnprotectConfirm} isLoading={connecting}>Unprotect All</Button>
+                            :
+                            <Button color="success" onClick={handleProtect} isLoading={connecting}>Protect All</Button>
+                        }
+                    </>
+                }
             </CardFooter>
         </Card>
 

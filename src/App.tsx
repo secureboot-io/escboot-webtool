@@ -83,7 +83,7 @@ const App: FC = () => {
 
 
         // let msp = new Msp(serialComm1);
-        
+
 
         // for(let i = 0; i < 4; i++) {
         //     try {
@@ -95,7 +95,7 @@ const App: FC = () => {
 
         //     let resp = await fourWay.initFlash(i, 3);
         //     console.log(resp);
-    
+
         //     let resp2 = await fourWay.getSecureBootInitialized();
         //     log.info("Secure boot initialized: " + resp2);
         //    // setSecure(resp2!);
@@ -118,7 +118,7 @@ const App: FC = () => {
     return (
         <>
 
-            <div className="px-4 flex-grow mx-8 flex flex-col" >
+            <div className="px-4 flex-grow flex flex-col" >
                 <Navbar maxWidth="full">
                     <NavbarContent justify="start">
                         <h1 className="text-2xl">ESC Secure Boot</h1>
@@ -162,34 +162,25 @@ const App: FC = () => {
                         </NavbarItem>
                     </NavbarContent>
                 </Navbar>
-                <Card className="m-unit-2 hidden">
-                    <CardHeader>
-                        <h5 className="text-sm tracking-tight">Activity</h5>
-                    </CardHeader>
-                    <Divider />
-                    <CardBody>
-                        <Log />
-                    </CardBody>
-                </Card>
-                <Spacer y={2} />
-                <div className="flex flex-col mb-8 flex-grow" style={{ alignItems: "center" }}>
-                    
-                        <Tabs aria-label="Options" className='' selectedKey={selectedTab} onSelectionChange={key => setSelectedTab(key.toString())}>
+                <div className="flex flex-col flex-grow mb-8" style={{ alignItems: "center" }}>
+
+                    <Tabs aria-label="Options" className='' selectedKey={selectedTab} onSelectionChange={key => setSelectedTab(key.toString())}>
                         {connected && (
                             <Tab key="ESC" title="ESC" className='flex flex-grow w-full'>
-                                <EscTab></EscTab>                              
+                                <EscTab></EscTab>
                             </Tab>
-                            )}
-                            <Tab key="music" title="Firmware Signing" className='w-full h-full'>
-                                <FirmwareSigningTab/>
-                            </Tab>
-                            <Tab key="videos" title="Key Generation"className='w-full h-full'>
-                                <KeyGenerationTab/>
-                            </Tab>
-                        </Tabs>
-                    
+                        )}
+                        <Tab key="music" title="Firmware Signing" className='w-full h-full'>
+                            <FirmwareSigningTab />
+                        </Tab>
+                        <Tab key="videos" title="Key Generation" className='w-full h-full'>
+                            <KeyGenerationTab />
+                        </Tab>
+                    </Tabs>
+
 
                 </div>
+                <Log></Log>
             </div>
         </>
     );
