@@ -43,5 +43,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ secrets.GAR_REPO }}/${{ secrets.IMAGE_NAME }}:${{ steps.get-tag.outputs.short_ref }}
-            ${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ secrets.GAR_REPO }}/${{ secrets.IMAGE_NAME }}:latest
+            asia-south2-docker.pkg.dev/secureboot-io/secureboot-io/escboot-webtool:${{ steps.get-tag.outputs.short_ref }}
+            asia-south2-docker.pkg.dev/secureboot-io/secureboot-io/escboot-webtool:latest
