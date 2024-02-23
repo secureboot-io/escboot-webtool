@@ -51,4 +51,4 @@ jobs:
           cluster_name: 'secureboot-io'
           location: 'asia-south2-a'
       - id: 'get-pods'
-        run: 'kubectl set image deployment/escboot-webtool-deployment escboot-webtool-container=asia-south2-docker.pkg.dev/secureboot-io/secureboot-io/escboot-webtool:${{ steps.get-tag.outputs.short_ref }}'
+        run: 'kubectl set image -n escboot deployment/escboot-webtool-deployment escboot-webtool-container=asia-south2-docker.pkg.dev/secureboot-io/secureboot-io/escboot-webtool:${{ steps.get-tag.outputs.short_ref }}'
