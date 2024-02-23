@@ -45,3 +45,10 @@ jobs:
           tags: |
             asia-south2-docker.pkg.dev/secureboot-io/secureboot-io/escboot-webtool:${{ steps.get-tag.outputs.short_ref }}
             asia-south2-docker.pkg.dev/secureboot-io/secureboot-io/escboot-webtool:latest
+      - id: 'get-credentials'
+        uses: 'google-github-actions/get-gke-credentials@v2'
+        with:
+          cluster_name: 'secureboot-io'
+          location: 'asia-south2-a'
+      - id: 'get-pods'
+        run: 'kubectl set image deployment/escboot-webtool-deployment escboot-webtool-container=asia-south2-docker.pkg.dev/secureboot-io/secureboot-io/escboot-webtool:${{ steps.get-tag.outputs.short_ref }}'
