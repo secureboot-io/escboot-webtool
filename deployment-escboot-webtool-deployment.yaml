@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "3"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{"deployment.kubernetes.io/revision":"2"},"creationTimestamp":"2024-02-19T17:44:59Z","generation":2,"labels":{"app":"escboot-webtool","name":"escboot-webtool-deployment"},"name":"escboot-webtool-deployment","namespace":"escboot","resourceVersion":"1981721","uid":"52ec3e5e-6a4a-412b-b932-ab0b6b29b60f"},"spec":{"progressDeadlineSeconds":600,"replicas":2,"revisionHistoryLimit":10,"selector":{"matchLabels":{"app":"escboot-webtool","name":"escboot-webtool-pod"}},"strategy":{"rollingUpdate":{"maxSurge":"25%","maxUnavailable":"25%"},"type":"RollingUpdate"},"template":{"metadata":{"creationTimestamp":null,"labels":{"app":"escboot-webtool","name":"escboot-webtool-pod"},"name":"escboot-webtool-pod"},"spec":{"containers":[{"image":"asia-south2-docker.pkg.dev/secureboot-io/secureboot-io/escboot-webtool:1.1","imagePullPolicy":"Always","name":"escboot-webtool-container","ports":[{"containerPort":80,"protocol":"TCP"}],"resources":{},"terminationMessagePath":"/dev/termination-log","terminationMessagePolicy":"File"}],"dnsPolicy":"ClusterFirst","restartPolicy":"Always","schedulerName":"default-scheduler","securityContext":{},"terminationGracePeriodSeconds":30}}},"status":{"availableReplicas":2,"conditions":[{"lastTransitionTime":"2024-02-19T17:44:59Z","lastUpdateTime":"2024-02-19T17:48:00Z","message":"ReplicaSet \"escboot-webtool-deployment-66cb766c\" has successfully progressed.","reason":"NewReplicaSetAvailable","status":"True","type":"Progressing"},{"lastTransitionTime":"2024-02-22T16:06:22Z","lastUpdateTime":"2024-02-22T16:06:22Z","message":"Deployment has minimum availability.","reason":"MinimumReplicasAvailable","status":"True","type":"Available"}],"observedGeneration":2,"readyReplicas":2,"replicas":2,"updatedReplicas":2}}
+  creationTimestamp: "2024-02-19T17:44:59Z"
+  generation: 3
+  labels:
+    app: escboot-webtool
+    name: escboot-webtool-deployment
+  name: escboot-webtool-deployment
+  namespace: escboot
+  resourceVersion: "2279084"
+  uid: 52ec3e5e-6a4a-412b-b932-ab0b6b29b60f
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 2
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: escboot-webtool
+      name: escboot-webtool-pod
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: escboot-webtool
+        name: escboot-webtool-pod
+      name: escboot-webtool-pod
+    spec:
+      containers:
+      - image: asia-south2-docker.pkg.dev/secureboot-io/secureboot-io/escboot-webtool:1.1
+        imagePullPolicy: Always
+        name: escboot-webtool-container
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "512Mi"
+          requests:
+            cpu: "0.25"
+            memory: "256Mi"
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+status:
+  availableReplicas: 2
+  conditions:
+  - lastTransitionTime: "2024-02-19T17:44:59Z"
+    lastUpdateTime: "2024-02-23T02:49:44Z"
+    message: ReplicaSet "escboot-webtool-deployment-5dc9dc64f8" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  - lastTransitionTime: "2024-02-23T02:51:38Z"
+    lastUpdateTime: "2024-02-23T02:51:38Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  observedGeneration: 3
+  readyReplicas: 2
+  replicas: 2
+  updatedReplicas: 2

@@ -12,10 +12,11 @@ interface EscNumTabProps {
     requestProtect: (target: number) => void
     requestUnprotect: (target: number) => void
     requestWrite: (target: number) => void
+    requestSign: (target: number) => void
 }
 
 const EscNumTab: FC<EscNumTabProps> = (
-    { target, requestProtect, requestUnprotect, requestWrite }
+    { target, requestProtect, requestUnprotect, requestWrite, requestSign }
 ) => {
 
     const store = useStore();
@@ -69,13 +70,17 @@ const EscNumTab: FC<EscNumTabProps> = (
         requestWrite(target);
     }
 
+    const handleSign = () => {  
+        requestSign(target);
+    }
+
     return (
         <Card>
             <CardHeader className="justify-between">
                 <h4>ESC {target + 1}</h4>
                 <div className="flex flex-row justify-end gap-2">
                     {escInfos[target]?.secure ? (
-                        <Chip radius="sm" variant="flat" color='success' className="float-right" startContent={<SecureIcon></SecureIcon>}>{devicePublicKey}</Chip>
+                        <Chip radius="sm" variant="flat" color={escInfos[target]?.deviceInfo.signOk ? "success" : "warning"} className="float-right" startContent={<SecureIcon></SecureIcon>}>{devicePublicKey}</Chip>
                     ) : (
                         <Chip radius="sm" color="warning" variant="flat" className="float-right" startContent={<UnsecureIcon></UnsecureIcon>}>Unprotected</Chip>
                     )}
@@ -98,12 +103,13 @@ const EscNumTab: FC<EscNumTabProps> = (
 
                 {escInfos[target]?.secure && (
                     <>
-
+                        
                     </>
                 )}
                 <div className="flex flex-row space-x-4 justify-end">
                     {escInfos[target]?.secure ? (
                         <>
+                            <Button color="success" onClick={handleSign} isLoading={connecting}>Sign</Button>
                             <Button color="warning" onClick={handleUnprotect} isLoading={connecting}>Unprotect</Button>
                         </>
                     ) : (

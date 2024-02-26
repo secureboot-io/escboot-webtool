@@ -8,6 +8,8 @@ import { isEqual } from "lodash";
 import FileUpload from "./FileUpload";
 import { Buffer } from "buffer";
 import ConfirmDialog from "./ConfirmDialog";
+import { KJUR } from "jsrsasign";
+import { DeviceInfo } from "./FourWay";
 
 const EscTab: FC = () => {
 
@@ -70,6 +72,11 @@ const EscTab: FC = () => {
             esc[i] = {
                 secure: resp,
                 deviceInfo: devInfo
+            }
+            if(resp) {
+                let sign = await fourWay?.secureBootGetSign();
+                console.log("Signature: " + sign);
+                esc[i]!.deviceInfo.signOk = verifySignature(esc[i]!.deviceInfo, Buffer.from(sign!, "base64").toString('hex'));
             }
             await escOperations?.disconnectFromTarget(i);
         }
@@ -148,6 +155,50 @@ const EscTab: FC = () => {
         await doRead(target);
     }
 
+    const verifySignature = (devInfo: DeviceInfo, sign: string): boolean => {
+        let hash = KJUR.crypto.Util.sha256Hex(Buffer.from(devInfo.raw).toString('hex'));
+        // console.log("Hash: " + hash);
+        // console.log("Public key: " + devInfo.manufacturerPublicKey);
+        let sig = KJUR.crypto.ECDSA.concatSigToASN1Sig(sign);
+        // console.log("Signature: " + sig);
+        const verified = new KJUR.crypto.ECDSA({ "curve": "secp256k1" }).verifyHex(hash, sig, "04" + Buffer.from(devInfo.manufacturerPublicKey, 'base64').toString('hex'));
+        // console.log("Verified: " + verified);
+        return verified;
+    }
+
+    const doSign = async (target: number | undefined = undefined) => {
+        setIsConfirmOpen(false);
+        setConnecting(true);
+        for (let i = 0; i < escInfos.length; i++) {
+            if (target !== undefined && target !== i) {
+                continue;
+            }
+            if (escInfos[i] === null) {
+                continue;
+            }
+            if (escInfos[i]?.secure === false) {
+                log.info("ESC " + (i + 1) + " is unprotected, skipping");
+                continue;
+            }
+            let fourWay = await escOperations?.connectToTarget(i);
+
+            let hash = KJUR.crypto.Util.sha256Hex(Buffer.from(escInfos[i]!.deviceInfo.raw).toString('hex'));
+            // console.log("Hash: " + hash);
+            // console.log("Private key: " + privateKey);
+            let sig = new KJUR.crypto.ECDSA({ "curve": "secp256k1" }).signHex(hash, privateKey!);
+            // console.log("Signature: " + sig);
+            let concatSig = KJUR.crypto.ECDSA.asn1SigToConcatSig(sig);
+            // console.log("Concatenated signature: " + concatSig);
+            await fourWay?.secureBootSetSign(Buffer.from(concatSig, 'hex'));
+            //let result = await fourWay?.secureBootDeinitialize();
+            //console.log("Unprotect result: " + result);
+            // verifySignature(escInfos[i]!.deviceInfo, sig);
+            await escOperations?.disconnectFromTarget(i);
+        }
+        setConnecting(false);
+        await doRead(target);
+    }
+
     const handleRead = async () => {
         doRead();
     }
@@ -191,6 +242,10 @@ const EscTab: FC = () => {
         setIsConfirmOpen(true);
     }
 
+    const handleSign = async () => {
+        doSign();
+    }
+
     return (
         <Card className='flex-grow'>
             <CardBody className="gap-4">
@@ -210,7 +265,8 @@ const EscTab: FC = () => {
                         <EscNumTab target={index}
                             requestWrite={(target) => doWrite(target)}
                             requestProtect={(target) => doProtect(target)}
-                            requestUnprotect={(target) => doUnprotect(target)} />
+                            requestUnprotect={(target) => doUnprotect(target)}
+                            requestSign={(target) => doSign(target)} />
                     );
                 })}
             </CardBody>
@@ -221,6 +277,9 @@ const EscTab: FC = () => {
                 <Button color="success" onClick={handleRead} isLoading={connecting}>Read All</Button>
                 {escInfos.filter((esc) => esc !== null && esc.secure === false).length > 0 &&
                     <Button color="success" onClick={handleWrite} isLoading={connecting}>Write All</Button>
+                }
+                {escInfos.filter((esc) => esc !== null && esc.secure === true).length > 0 && privateKey !== null &&
+                    <Button color="success" onClick={handleSign} isLoading={connecting}>Sign All</Button>
                 }
                 {commonEscInfo !== null &&
                     <>

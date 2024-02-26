@@ -1,5 +1,5 @@
 import AsyncLock from "./AsyncLock";
-import { FourWay } from "./FourWay";
+import { FOUR_WAY_ACK, FourWay } from "./FourWay";
 import Msp, { MSP_COMMANDS } from "./Msp";
 import SerialComm from "./SerialComm";
 
@@ -26,7 +26,11 @@ export default class EscOperations {
         do {
             try {
                 await this.msp.send(MSP_COMMANDS.MSP_SET_PASSTHROUGH, new Uint8Array());
-                await this.fourWay.initFlash(target);
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                let resp = await this.fourWay.initFlash(target);
+                if(resp?.ack != FOUR_WAY_ACK.ACK_OK) {
+                    return null;
+                }
             } catch (e) {
                 await this.fourWay.exitInterface(target);
             }

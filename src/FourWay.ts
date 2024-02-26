@@ -9,6 +9,7 @@ export type DeviceInfo = {
     deviceId: string;
     devicePublicKey: string;
     raw: Uint8Array;
+    signOk?: boolean;
 };
 
 export enum FOUR_WAY_COMMANDS {
@@ -110,15 +111,15 @@ export class FourWay {
         return crc & 0xFFFF;
     }
 
-    initFlash(target: number, retries = 10) {
-        return this.sendWithPromise(FOUR_WAY_COMMANDS.cmd_DeviceInitFlash, new Uint8Array([target]), 0, retries);
+    initFlash(target: number) {
+        return this.sendWithPromise(FOUR_WAY_COMMANDS.cmd_DeviceInitFlash, new Uint8Array([target]), 0, 1);
     }
 
-    exitInterface(target: number, retries = 10) {
-        return this.sendWithPromise(FOUR_WAY_COMMANDS.cmd_InterfaceExit, new Uint8Array([target]), 0, retries);
+    exitInterface(target: number) {
+        return this.sendWithPromise(FOUR_WAY_COMMANDS.cmd_InterfaceExit, new Uint8Array([target]), 0, 1);
     }
 
-    async getSecureBootInitialized(retries = 10) {
+    async getSecureBootInitialized(retries = 3) {
         let resp = await this.readAddress(0x0000F000, 1, retries);
         if (resp === null) {
             return null;
@@ -132,7 +133,7 @@ export class FourWay {
         return null;
     }
 
-    async readAddress(address: number, bytes: number, retries = 10) {
+    async readAddress(address: number, bytes: number, retries = 3) {
         return this.sendWithPromise(
             FOUR_WAY_COMMANDS.cmd_DeviceRead,
             new Uint8Array([bytes === 256 ? 0 : bytes]),
@@ -141,12 +142,12 @@ export class FourWay {
         );
     }
 
-    async secureBootInitialize(retries = 10) {
+    async secureBootInitialize(retries = 1) {
         return await this.writeAddress(0x0000F000, new Uint8Array([0x00]));
     }
 
 
-    async secureBootDeinitialize(retries = 10) {
+    async secureBootDeinitialize(retries = 1) {
         return await this.writeAddress(0x0000F000, new Uint8Array([0xFF]));
     }
 
@@ -196,15 +197,15 @@ export class FourWay {
         return await this.writeAddress(0x0000F001, data);
     }
 
-    async secureBootSign(data: Uint8Array, retries = 1) {
+    async secureBootSetSign(data: Uint8Array, retries = 1) {
         return await this.writeAddress(0x0000F0C1, data);
     }
 
-    async secureWriteSignature(address: number, data: Uint8Array, retries = 1) {
-        return await this.writeAddress(address, data);
+    async secureBootGetSign(retries = 1) {
+        return this.toBase64((await this.readAddress(0x0000F0C1, 64))!.params);
     }
 
-    async sendWithPromise(command: FOUR_WAY_COMMANDS, params: Uint8Array = new Uint8Array([]), address: number = 0, retries: number = 10): Promise<FourWayResponse | null> {
+    async sendWithPromise(command: FOUR_WAY_COMMANDS, params: Uint8Array = new Uint8Array([]), address: number = 0, retries: number = 1): Promise<FourWayResponse | null> {
         const message = this.makePackage(command, params, address);
 
         if (!message) {
@@ -217,17 +218,17 @@ export class FourWay {
         while (currentTry++ < retries) {
             await await this.serialComm.write(new Uint8Array(message));
 
-            let buffer = await this.serialComm.readWithTimeout(9, 2000);
+            let buffer = await this.serialComm.readWithTimeout(9, 500);
             if (buffer === null || buffer.length === 0) {
                 this.log.warn("Recieved no reply from ESC for " + command + " try " + currentTry);
-                break;
+                continue;
             }
             let response = await this.parseMessage(buffer);
             if (response.ack !== FOUR_WAY_ACK.ACK_OK) {
-                //this.log.warn("Receieved NACK from ESC for " + command + " with code " + response.ack);
-                break;
+                this.log.warn("Receieved NACK from ESC for " + command + " with code " + response.ack);
+                continue;
             }
-            //this.log.info("ESC response OK for " + command);
+            // this.log.info("ESC response OK for " + command);
             return response;
         }
         //this.log.error("error sending command");
@@ -341,8 +342,4 @@ export class FourWay {
             );
         }
     }
-
-    // testAlive () {
-    //     return this.sendWithPromise(FOUR_WAY_COMMANDS.cmd_InterfaceTestAlive);
-    // }
 }

@@ -3,10 +3,12 @@ import React, { FC, useRef } from "react";
 
 type FileUploadProps = React.ComponentPropsWithoutRef<'div'> & {
     onFileSelected?: (file: File) => void;
+    label?: string;
 }
 
 const FileUpload: FC<FileUploadProps> = ({
     onFileSelected,
+    label = "Select file",
     ...otherProps
 }) => {
         const fileInputField = useRef<HTMLInputElement>(null);
@@ -29,7 +31,7 @@ const FileUpload: FC<FileUploadProps> = ({
     <div {...otherProps}>
         <Card isHoverable={true} onClick={handleBrowse} isPressable={true} className="w-full">
             <CardFooter className="gap-4 justify-between">
-                <div className="flex gap-4"><Chip radius="sm" variant="light">Private key file:</Chip><Chip radius="sm" variant="flat">{file?.name}</Chip></div>
+                <div className="flex gap-4"><Chip radius="sm" variant="light">{label}: </Chip><Chip radius="sm" variant="flat">{file?.name}</Chip></div>
                 {/* <Button onClick={handleBrowse} variant="bordered" color="success">Browse</Button> */}
                 <input
                 style={{ display: "none" }}

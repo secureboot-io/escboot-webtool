@@ -92,6 +92,8 @@ class SerialComm
         const writter = this.port.writable?.getWriter();
         let chunk = writter?.write(data);
         writter?.releaseLock();
+        //log
+        this.log.info("Sent: " + this.toHexString(data));
         return chunk;
     }
 
@@ -145,6 +147,9 @@ class SerialComm
             mergedArray.set(item, offset);
             offset += item.length;
         });
+
+        //log
+        this.log.info("Received: " + this.toHexString(mergedArray));
 
         return mergedArray;
     }
